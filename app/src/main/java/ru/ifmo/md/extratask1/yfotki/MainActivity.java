@@ -1,27 +1,28 @@
 package ru.ifmo.md.extratask1.yfotki;
 
 import android.content.Context;
+import android.content.res.Configuration;
+import android.graphics.drawable.GradientDrawable;
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.ActionBar;
-import android.support.v4.app.Fragment;
-import android.os.Bundle;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.os.Build;
 import android.widget.TextView;
 
 
 public class MainActivity extends FragmentActivity {
 
-    SectionsPagerAdapter mSectionsPagerAdapter;
-    ViewPager mViewPager;
+    private SectionsPagerAdapter mSectionsPagerAdapter;
+    private ViewPager mViewPager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +63,7 @@ public class MainActivity extends FragmentActivity {
      */
     public static class SectionsPagerAdapter extends FragmentPagerAdapter {
 
-        Context mContext;
+        private Context mContext;
 
         public SectionsPagerAdapter(FragmentManager fm, Context context) {
             super(fm);
@@ -102,14 +103,44 @@ public class MainActivity extends FragmentActivity {
 
         public static final String ARG_SECTION_NUMBER = "number";
 
+        private RecyclerView mRecyclerView;
+        private RecyclerView.Adapter mAdapter;
+        private RecyclerView.LayoutManager mLayoutManager;
+
+        private int mSection;
+
+        @Override
+        public void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            Bundle args = getArguments();
+            mSection = args.getInt(ARG_SECTION_NUMBER);
+        }
+
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_section, container, false);
-            Bundle args = getArguments();
-            int number = args.getInt(ARG_SECTION_NUMBER) + 1;
-            ((TextView) rootView.findViewById(R.id.textView))
-                    .setText("Page #" + number);
+
+            mRecyclerView = (RecyclerView) rootView.findViewById(R.id.recyclerView);
+
             return rootView;
+        }
+
+        @Override
+        public void onViewCreated(View view, Bundle savedInstanceState) {
+            final int orientation = getResources().getConfiguration().orientation;
+            final int columns;
+            if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+                columns = 3;
+            } else {
+                columns = 5;
+            }
+
+            mLayoutManager = new GridLayoutManager(getActivity(), columns);
+            mRecyclerView.setLayoutManager(mLayoutManager);
+            mAdapter = new SectionAdapter(R.drawable.ic_launcher);
+            mRecyclerView.setAdapter(mAdapter);
+
+            super.onViewCreated(view, savedInstanceState);
         }
 
     }
