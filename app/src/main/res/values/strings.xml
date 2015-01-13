@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">YFotki</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="pod">Photo of the day</string>
+    <string name="recent">Recent</string>
+    <string name="top">Top</string>
+
+</resources>
