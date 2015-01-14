@@ -27,8 +27,8 @@ public class PhotosDatabase extends SQLiteOpenHelper {
         db.execSQL("CREATE TABLE " + Tables.PHOTOS + " ("
                 + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + PhotosContract.PhotoColumns.PHOTO_TITLE + " TEXT NOT NULL, "
-                + PhotosContract.PhotoColumns.PHOTO_CONTENT_URL + " TEXT NOT NULL, "
-                + PhotosContract.PhotoColumns.PHOTO_WATCH_URL + " TEXT NOT NULL);"
+                + PhotosContract.PhotoColumns.PHOTO_CONTENT_URL + " TEXT, "
+                + PhotosContract.PhotoColumns.PHOTO_WATCH_URL + " TEXT);"
         );
     }
 
