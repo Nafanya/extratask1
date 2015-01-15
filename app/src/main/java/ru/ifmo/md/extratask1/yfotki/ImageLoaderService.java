@@ -2,18 +2,16 @@ package ru.ifmo.md.extratask1.yfotki;
 
 import android.app.IntentService;
 import android.content.ContentValues;
-import android.content.Intent;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
-import android.provider.Contacts;
 import android.sax.Element;
 import android.sax.ElementListener;
 import android.sax.EndElementListener;
 import android.sax.EndTextElementListener;
 import android.sax.RootElement;
 import android.sax.StartElementListener;
-import android.util.Log;
 import android.util.Xml;
 
 import org.xml.sax.Attributes;
@@ -26,8 +24,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import ru.ifmo.md.extratask1.yfotki.provider.PhotosContract;
 
@@ -39,7 +35,6 @@ public class ImageLoaderService extends IntentService {
 
     private static final String EXTRA_PARAM1 = "ru.ifmo.md.extratask1.yfotki.extra.PARAM1";
     private static final String EXTRA_PARAM2 = "ru.ifmo.md.extratask1.yfotki.extra.PARAM2";
-
     public enum SectionType {
         TOP,
         RECENT,
@@ -77,12 +72,8 @@ public class ImageLoaderService extends IntentService {
         }
     }
 
-    private void handleActionBaz(String param1, String param2) {
-        // TODO: Handle action Baz
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
     private void loadPhotos(SectionType type) throws IOException, SAXException {
+
         final URL url;
         try {
             url = new URL(buildSectionUrl(type));
@@ -97,10 +88,6 @@ public class ImageLoaderService extends IntentService {
         InputStreamReader isr = new InputStreamReader(is);
         ArrayList<PhotoItem> items = PhotoParser.parse(isr);
 
-        handlePhotoItems(items);
-    }
-
-    private void handlePhotoItems(ArrayList<PhotoItem> items) {
         for (PhotoItem item : items) {
             Cursor cursor = getContentResolver().query(
                     PhotosContract.Photo.CONTENT_URI,
@@ -116,9 +103,20 @@ public class ImageLoaderService extends IntentService {
 
             ContentValues values = new ContentValues();
             values.put(PhotosContract.PhotoColumns.PHOTO_TITLE, item.getTitle());
+            values.put(PhotosContract.PhotoColumns.PHOTO_TYPE, getType(type));
             values.put(PhotosContract.PhotoColumns.PHOTO_WATCH_URL, item.getWatchUrl());
             values.put(PhotosContract.PhotoColumns.PHOTO_CONTENT_URL, item.getContentUrl());
-            getContentResolver().insert(PhotosContract.Photo.CONTENT_URI, values);
+            Uri insertedUri = getContentResolver().insert(PhotosContract.Photo.CONTENT_URI, values);
+        }
+    }
+
+    private int getType(SectionType type) {
+        switch (type) {
+            case TOP: return 0;
+            case RECENT: return 1;
+            case POD: return 2;
+            default:
+                throw new IllegalArgumentException("Unknown type");
         }
     }
 
@@ -197,15 +195,10 @@ public class ImageLoaderService extends IntentService {
 
                 @Override
                 public void start(Attributes attributes) {
-                    final String url = attributes.getValue("src");
+                    String url = attributes.getValue("src");
+                    int underscoreIndex = url.lastIndexOf('_');
+                    url = url.substring(0, underscoreIndex + 1);
                     item.setContentUrl(url);
-                }
-            });
-
-            root.setStartElementListener(new StartElementListener() {
-                @Override
-                public void start(Attributes attributes) {
-                    Log.d("TAG", "Start root tag");
                 }
             });
         }

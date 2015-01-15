@@ -24,8 +24,6 @@ public class MainActivity extends FragmentActivity {
         mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager(), getApplicationContext());
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setAdapter(mSectionsPagerAdapter);
-
-        ImageLoaderService.startActionLoadTop(this);
     }
 
 
