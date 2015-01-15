@@ -13,8 +13,6 @@ public final class PhotosContract {
         String PHOTO_CONTENT_URL = "photo_content_url";
         String PHOTO_WATCH_URL = "photo_watch_url";
         String PHOTO_TYPE = "photo_type";
-        //String PHOTO_SMALL_DISK_PATH = "photo_small_disk_path";
-        //String PHOTO_LARGE_DISK_PATH = "photo_large_disk_path";
     }
 
     public static final int TYPE_TOP = 0;
@@ -36,9 +34,7 @@ public final class PhotosContract {
                 BaseColumns._ID,
                 PhotoColumns.PHOTO_TITLE,
                 PhotoColumns.PHOTO_CONTENT_URL,
-                PhotoColumns.PHOTO_WATCH_URL,
-                //PhotoColumns.PHOTO_SMALL_DISK_PATH,
-                //PhotoColumns.PHOTO_LARGE_DISK_PATH
+                PhotoColumns.PHOTO_WATCH_URL
         };
 
         public static Uri buildPhotoUri(String photoId) {

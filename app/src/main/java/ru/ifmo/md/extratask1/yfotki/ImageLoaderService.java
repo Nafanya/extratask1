@@ -29,21 +29,18 @@ import ru.ifmo.md.extratask1.yfotki.provider.PhotosContract;
 
 
 public class ImageLoaderService extends IntentService {
-    private static final String ACTION_LOAD_TOP = "ru.ifmo.md.extratask1.yfotki.action.LOAD_TOP";
-    private static final String ACTION_LOAD_RECENT = "ru.ifmo.md.extratask1.yfotki.action.LOAD_RECENT";
-    private static final String ACTION_LOAD_POD = "ru.ifmo.md.extratask1.yfotki.action.LOAD_POD";
+    private static final String ACTION_LOAD = "ru.ifmo.md.extratask1.yfotki.action.LOAD";
 
-    private static final String EXTRA_PARAM1 = "ru.ifmo.md.extratask1.yfotki.extra.PARAM1";
-    private static final String EXTRA_PARAM2 = "ru.ifmo.md.extratask1.yfotki.extra.PARAM2";
-    public enum SectionType {
-        TOP,
-        RECENT,
-        POD
-    }
+    private static final String EXTRA_PARAM_SECTION_TYPE = "ru.ifmo.md.extratask1.yfotki.extra.SECTION_TYPE";
 
-    public static void startActionLoadTop(Context context) {
+    public static final int SECTION_TOP = 0;
+    public static final int SECTION_RECENT = 1;
+    public static final int SECTION_POD = 2;
+
+    public static void startActionLoad(Context context, int type) {
         Intent intent = new Intent(context, ImageLoaderService.class);
-        intent.setAction(ACTION_LOAD_TOP);
+        intent.setAction(ACTION_LOAD);
+        intent.putExtra(EXTRA_PARAM_SECTION_TYPE, type);
         context.startService(intent);
     }
 
@@ -55,15 +52,16 @@ public class ImageLoaderService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
             final String action = intent.getAction();
-            if (ACTION_LOAD_TOP.equals(action)) {
-                handleActionLoadTop();
+            if (ACTION_LOAD.equals(action)) {
+                final int type = intent.getIntExtra(EXTRA_PARAM_SECTION_TYPE, 0);
+                handleActionLoad(type);
             }
         }
     }
 
-    private void handleActionLoadTop() {
+    private void handleActionLoad(int type) {
         try {
-            loadPhotos(SectionType.TOP);
+            loadPhotos(type);
             // TODO: proper handling
         } catch (IOException e) {
             e.printStackTrace();
@@ -72,7 +70,7 @@ public class ImageLoaderService extends IntentService {
         }
     }
 
-    private void loadPhotos(SectionType type) throws IOException, SAXException {
+    private void loadPhotos(int type) throws IOException, SAXException {
 
         final URL url;
         try {
@@ -103,36 +101,26 @@ public class ImageLoaderService extends IntentService {
 
             ContentValues values = new ContentValues();
             values.put(PhotosContract.PhotoColumns.PHOTO_TITLE, item.getTitle());
-            values.put(PhotosContract.PhotoColumns.PHOTO_TYPE, getType(type));
+            values.put(PhotosContract.PhotoColumns.PHOTO_TYPE, type);
             values.put(PhotosContract.PhotoColumns.PHOTO_WATCH_URL, item.getWatchUrl());
             values.put(PhotosContract.PhotoColumns.PHOTO_CONTENT_URL, item.getContentUrl());
             Uri insertedUri = getContentResolver().insert(PhotosContract.Photo.CONTENT_URI, values);
         }
     }
 
-    private int getType(SectionType type) {
-        switch (type) {
-            case TOP: return 0;
-            case RECENT: return 1;
-            case POD: return 2;
-            default:
-                throw new IllegalArgumentException("Unknown type");
-        }
-    }
-
-    private String buildSectionUrl(SectionType type) {
+    private String buildSectionUrl(int type) {
         Uri.Builder builder = new Uri.Builder();
         builder.scheme("http")
                 .authority("api-fotki.yandex.ru")
                 .appendPath("api");
         switch (type) {
-            case TOP:
+            case SECTION_TOP:
                 builder.appendPath("top");
                 break;
-            case RECENT:
+            case SECTION_RECENT:
                 builder.appendPath("recent");
                 break;
-            case POD:
+            case SECTION_POD:
                 builder.appendPath("podhistory");
                 break;
         }

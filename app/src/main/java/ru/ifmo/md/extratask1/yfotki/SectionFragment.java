@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import ru.ifmo.md.extratask1.yfotki.provider.PhotosContract;
 
 
-public class SectionFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+public class SectionFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>,ImageDownloader.Listener<ImageView> {
     public static final String ARG_SECTION_NUMBER = "number";
 
     private static final int LOADER_IMAGES = 1;
@@ -31,7 +31,7 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
     private SectionAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
-    private ImageDownloader<ImageView> mImageDownloader;
+    private ImageDownloader<ImageView> mImageDownloader = null;
     private LruCache<String, Bitmap> mCache;
 
     private int mSection;
@@ -59,7 +59,7 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         mSection = args.getInt(ARG_SECTION_NUMBER);
 
         // TODO: don't load each onCreate
-        ImageLoaderService.startActionLoadTop(getActivity());
+        ImageLoaderService.startActionLoad(getActivity(), mSection);
     }
 
     @Override
@@ -67,6 +67,21 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         super.onPause();
         mImageDownloader.clearQueue();
         mImageDownloader.quit();
+        mImageDownloader.setListener(null);
+        mImageDownloader = null;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        installDownloader();
+    }
+
+    private void installDownloader() {
+        mImageDownloader = new ImageDownloader<>(new Handler(), getActivity().getApplicationContext());
+        mImageDownloader.setListener(this);
+        mImageDownloader.start();
+        mImageDownloader.getLooper();
     }
 
     @Override
@@ -92,19 +107,6 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         mRecyclerView.setLayoutManager(mLayoutManager);
         mAdapter = new SectionAdapter(new ArrayList<PhotoItem>());
         mRecyclerView.setAdapter(mAdapter);
-
-        mImageDownloader = new ImageDownloader<ImageView>(new Handler());
-        mImageDownloader.setListener(new ImageDownloader.Listener<ImageView>() {
-            @Override
-            public void onImageDownloaded(ImageView imageView, String url, Bitmap bitmap) {
-                if (isVisible()) {
-                    imageView.setImageBitmap(bitmap);
-                    addBitmapToMemoryCache(url, bitmap);
-                }
-            }
-        });
-        mImageDownloader.start();
-        mImageDownloader.getLooper();
 
         final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
         final int cacheSize = maxMemory / 8;
@@ -175,7 +177,15 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         mAdapter.setItems(mItems);
     }
 
-    private class SectionAdapter extends RecyclerView.Adapter<ViewHolder> {
+    @Override
+    public void onImageDownloaded(ImageView imageView, String url, Bitmap bitmap) {
+        if (isVisible()) {
+            imageView.setImageBitmap(bitmap);
+            addBitmapToMemoryCache(url, bitmap);
+        }
+    }
+
+    private class SectionAdapter extends RecyclerView.Adapter<ViewHolderImage> {
 
         private ArrayList<PhotoItem> mItems;
 
@@ -190,21 +200,21 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         }
 
         @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        public ViewHolderImage onCreateViewHolder(ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.section_item, parent, false);
-            ViewHolder holder = new ViewHolder(v);
+            ViewHolderImage holder = new ViewHolderImage(v);
             return holder;
         }
 
         @Override
-        public void onBindViewHolder(ViewHolder viewHolder, int position) {
+        public void onBindViewHolder(ViewHolderImage viewHolderImage, int position) {
             PhotoItem item = mItems.get(position);
-            final String url = item.getContentUrl() + "M";
+            final String url = item.getContentUrl() + "S";
             Bitmap cachedBitmap = getBitmapFromMemCache(url);
             if (cachedBitmap != null) {
-                viewHolder.mImageView.setImageBitmap(cachedBitmap);
+                viewHolderImage.mImageView.setImageBitmap(cachedBitmap);
             } else {
-                mImageDownloader.queueImage(viewHolder.mImageView, item.getContentUrl() + "M");
+                mImageDownloader.queueImage(viewHolderImage.mImageView, url);
             }
         }
 
@@ -215,10 +225,10 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
 
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
+    public static class ViewHolderImage extends RecyclerView.ViewHolder {
         public ImageView mImageView;
 
-        public ViewHolder(View view) {
+        public ViewHolderImage(View view) {
             super(view);
             mImageView = (ImageView) view;
         }

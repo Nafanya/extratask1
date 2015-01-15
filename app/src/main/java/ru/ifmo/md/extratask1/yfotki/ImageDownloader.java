@@ -1,5 +1,7 @@
 package ru.ifmo.md.extratask1.yfotki;
 
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
@@ -8,6 +10,8 @@ import android.os.Message;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -27,6 +31,7 @@ public class ImageDownloader<Handle> extends HandlerThread {
     private Map<Handle, String> mRequestMap = Collections.synchronizedMap(new HashMap<Handle, String>());
     private Handler mResponseHandler;
     private Listener<Handle> mListener;
+    private Context mContext;
 
     public interface Listener<Handle> {
         void onImageDownloaded(Handle handle, String url, Bitmap bitmap);
@@ -36,9 +41,10 @@ public class ImageDownloader<Handle> extends HandlerThread {
         mListener = listener;
     }
 
-    public ImageDownloader(Handler responseHandler) {
+    public ImageDownloader(Handler responseHandler, Context context) {
         super("ImageDownloader");
         mResponseHandler = responseHandler;
+        mContext = context;
     }
 
     @Override
@@ -49,7 +55,6 @@ public class ImageDownloader<Handle> extends HandlerThread {
                 if (msg.what == MESSAGE_DOWNLOAD) {
                     @SuppressWarnings("unchecked")
                     Handle handle = (Handle)msg.obj;
-                    Log.i("TAG", "Got a request for url: " + mRequestMap.get(handle));
                     handleRequest(handle);
                 }
             }
@@ -62,9 +67,18 @@ public class ImageDownloader<Handle> extends HandlerThread {
             if (url == null)
                 return;
 
-            byte[] bitmapBytes = loadUrlBytes(url);
-            final Bitmap bitmap = BitmapFactory
-                    .decodeByteArray(bitmapBytes, 0, bitmapBytes.length);
+            Bitmap tempBitmap = loadImageFromStorage(url);
+            if (tempBitmap == null) {
+                Log.d("TAG", "Loading image at " + url);
+                byte[] bitmapBytes = loadUrlBytes(url);
+                tempBitmap = BitmapFactory.decodeByteArray(
+                        bitmapBytes, 0, bitmapBytes.length);
+                saveImageToFile(tempBitmap, url);
+            } else {
+                Log.d("TAG", "Image from disk cache");
+            }
+
+            final Bitmap bitmap = tempBitmap;
 
             mResponseHandler.post(new Runnable() {
                 public void run() {
@@ -72,12 +86,58 @@ public class ImageDownloader<Handle> extends HandlerThread {
                         return;
 
                     mRequestMap.remove(handle);
-                    mListener.onImageDownloaded(handle, url, bitmap);
+                    if (mListener != null) {
+                        mListener.onImageDownloaded(handle, url, bitmap);
+                    }
                 }
             });
         } catch (IOException e) {
             Log.e("TAG", "Error downloading image", e);
         }
+    }
+
+    private Bitmap loadImageFromStorage(String url)  {
+        ContextWrapper cw = new ContextWrapper(mContext.getApplicationContext());
+        final String filename = getFileName(url);
+        File path = new File(cw.getCacheDir(), filename);
+
+        if (!path.exists() || path.isDirectory()) {
+            return null;
+        }
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+
+        return BitmapFactory.decodeFile(path.getAbsolutePath(), options);
+    }
+
+    private void saveImageToFile(Bitmap bitmap, String url) {
+        final String fileName = getFileName(url);
+        ContextWrapper cw = new ContextWrapper(mContext.getApplicationContext());
+        File directory = cw.getCacheDir();
+        File path = new File(directory, fileName);
+
+        FileOutputStream out = null;
+        try {
+            out = new FileOutputStream(path);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (out != null) {
+                    out.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private String getFileName(final String url) {
+        int lastSlash = url.lastIndexOf('/');
+        final String name = url.substring(lastSlash + 1);
+        return name;
     }
 
     private byte[] loadUrlBytes(String urlSpec) throws IOException {
@@ -105,6 +165,11 @@ public class ImageDownloader<Handle> extends HandlerThread {
     }
 
     public void queueImage(Handle handle, String url) {
+        if (mRequestMap.containsKey(handle)) {
+            if (mRequestMap.get(handle).equals(url)) {
+                return;
+            }
+        }
         mRequestMap.put(handle, url);
 
         mHandler.obtainMessage(MESSAGE_DOWNLOAD, handle).sendToTarget();

@@ -5,6 +5,7 @@
            android:layout_height="match_parent"
            android:id="@+id/imageView"
            android:scaleType="centerCrop"
+           android:background="@android:color/black"
            android:contentDescription="@null">
 
 </ru.ifmo.md.extratask1.yfotki.SquareImageView>
