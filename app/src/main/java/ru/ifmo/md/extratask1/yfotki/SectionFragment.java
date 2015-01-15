@@ -200,9 +200,9 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         public void onBindViewHolder(ViewHolder viewHolder, int position) {
             PhotoItem item = mItems.get(position);
             final String url = item.getContentUrl() + "M";
-            Bitmap cahcedBitmap = getBitmapFromMemCache(url);
-            if (cahcedBitmap != null) {
-                viewHolder.mImageView.setImageBitmap(cahcedBitmap);
+            Bitmap cachedBitmap = getBitmapFromMemCache(url);
+            if (cachedBitmap != null) {
+                viewHolder.mImageView.setImageBitmap(cachedBitmap);
             } else {
                 mImageDownloader.queueImage(viewHolder.mImageView, item.getContentUrl() + "M");
             }
