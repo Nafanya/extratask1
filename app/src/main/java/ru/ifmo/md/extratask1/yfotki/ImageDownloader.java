@@ -29,7 +29,7 @@ public class ImageDownloader<Handle> extends HandlerThread {
     private Listener<Handle> mListener;
 
     public interface Listener<Handle> {
-        void onImageDownloaded(Handle handle, Bitmap bitmap);
+        void onImageDownloaded(Handle handle, String url, Bitmap bitmap);
     }
 
     public void setListener(Listener<Handle> listener) {
@@ -72,7 +72,7 @@ public class ImageDownloader<Handle> extends HandlerThread {
                         return;
 
                     mRequestMap.remove(handle);
-                    mListener.onImageDownloaded(handle, bitmap);
+                    mListener.onImageDownloaded(handle, url, bitmap);
                 }
             });
         } catch (IOException e) {

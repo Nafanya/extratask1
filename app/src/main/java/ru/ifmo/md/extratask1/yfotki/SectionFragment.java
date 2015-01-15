@@ -11,6 +11,7 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,6 +32,7 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
     private RecyclerView.LayoutManager mLayoutManager;
 
     private ImageDownloader<ImageView> mImageDownloader;
+    private LruCache<String, Bitmap> mCache;
 
     private int mSection;
     private ArrayList<PhotoItem> mItems;
@@ -50,6 +52,8 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        setRetainInstance(true);
 
         Bundle args = getArguments();
         mSection = args.getInt(ARG_SECTION_NUMBER);
@@ -92,18 +96,40 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         mImageDownloader = new ImageDownloader<ImageView>(new Handler());
         mImageDownloader.setListener(new ImageDownloader.Listener<ImageView>() {
             @Override
-            public void onImageDownloaded(ImageView imageView, Bitmap bitmap) {
+            public void onImageDownloaded(ImageView imageView, String url, Bitmap bitmap) {
                 if (isVisible()) {
                     imageView.setImageBitmap(bitmap);
+                    addBitmapToMemoryCache(url, bitmap);
                 }
             }
         });
         mImageDownloader.start();
         mImageDownloader.getLooper();
 
+        final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
+        final int cacheSize = maxMemory / 8;
+        mCache = new LruCache<String, Bitmap>(cacheSize) {
+
+            @Override
+            protected int sizeOf(String url, Bitmap bitmap) {
+                return bitmap.getByteCount() / 1024;
+            }
+
+        };
+
         getLoaderManager().initLoader(LOADER_IMAGES, null, this);
 
         super.onViewCreated(view, savedInstanceState);
+    }
+
+    public void addBitmapToMemoryCache(String key, Bitmap bitmap) {
+        if (getBitmapFromMemCache(key) == null) {
+            mCache.put(key, bitmap);
+        }
+    }
+
+    public Bitmap getBitmapFromMemCache(String key) {
+        return mCache.get(key);
     }
 
     @Override
@@ -173,15 +199,13 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         @Override
         public void onBindViewHolder(ViewHolder viewHolder, int position) {
             PhotoItem item = mItems.get(position);
-            mImageDownloader.queueImage(viewHolder.mImageView, item.getContentUrl() + "M");
-            /*
-            if (null != item.getSmallImagePath()) {
-                Bitmap bitmap = BitmapFactory.decodeFile(item.getSmallImagePath());
-                viewHolder.mImageView.setImageBitmap(bitmap);
+            final String url = item.getContentUrl() + "M";
+            Bitmap cahcedBitmap = getBitmapFromMemCache(url);
+            if (cahcedBitmap != null) {
+                viewHolder.mImageView.setImageBitmap(cahcedBitmap);
             } else {
-                viewHolder.mImageView.setImageResource(R.drawable.ic_launcher);
-
-            }*/
+                mImageDownloader.queueImage(viewHolder.mImageView, item.getContentUrl() + "M");
+            }
         }
 
         @Override
