@@ -83,7 +83,6 @@ public class SectionFragment extends Fragment implements
         final String key = Integer.toString(mSection);
         int isFirstTime = readFromPreferences(key);
         if (isFirstTime == -1) {
-            saveToPreferences(key, 1);
             ImageLoaderService.startActionLoad(getActivity(), mSection);
         }
     }
@@ -365,6 +364,12 @@ public class SectionFragment extends Fragment implements
                 case Constants.STATE_ACTION_COMPLETE:
                     mIsRefreshing = false;
                     mRefreshLayout.setRefreshing(false);
+                    final String key = Integer.toString(mSection);
+                    int isFirstTime = readFromPreferences(key);
+                    if (isFirstTime == -1) {
+                        saveToPreferences(key, 1);
+                        getLoaderManager().restartLoader(LOADER_IMAGES, Bundle.EMPTY, SectionFragment.this);
+                    }
                     break;
                 case Constants.STATE_ACTION_STARTED:
                     mIsRefreshing = true;
