@@ -1,7 +1,6 @@
 package ru.ifmo.md.extratask1.yfotki;
 
 import android.app.DownloadManager;
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
@@ -17,6 +16,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 
 
 public class ResizableImageActivity extends ActionBarActivity implements
@@ -39,8 +39,9 @@ public class ResizableImageActivity extends ActionBarActivity implements
     private static final int ZOOM = 2;
     private int mode = NONE;
 
-    private ProgressDialog mProgressDialog;
+    //private ProgressDialog mProgressDialog;
     private ImageView mImageView;
+    private ProgressBar mProgressBar;
 
     private ImageDownloader<ImageView> mImageDownloader;
     private String mContentUrl;
@@ -54,9 +55,11 @@ public class ResizableImageActivity extends ActionBarActivity implements
 
         mMatrix = new Matrix();
         mSavedMatrix = new Matrix();
-        mProgressDialog = new ProgressDialog(this);
-        mProgressDialog.setTitle("Loading");
-        mProgressDialog.show();
+//        mProgressDialog = new ProgressDialog(this);
+//        mProgressDialog.setTitle("Loading");
+//        mProgressDialog.show();
+        mProgressBar = (ProgressBar) findViewById(R.id.progress);
+        mProgressBar.setIndeterminate(true);
 
         Intent intent = getIntent();
         mContentUrl = intent.getStringExtra(EXTRA_CONTENT_URL);
@@ -83,7 +86,7 @@ public class ResizableImageActivity extends ActionBarActivity implements
         mImageDownloader.setListener(null);
         mImageDownloader = null;
 
-        mProgressDialog.dismiss();
+        //mProgressDialog.dismiss();
     }
 
     @Override
@@ -203,9 +206,10 @@ public class ResizableImageActivity extends ActionBarActivity implements
 
     @Override
     public void onImageDownloaded(ImageView imageView, String url, Bitmap bitmap) {
-        if (mProgressDialog.isShowing()) {
-            mProgressDialog.dismiss();
-        }
+//        if (mProgressDialog.isShowing()) {
+//            mProgressDialog.dismiss();
+//        }
+        mProgressBar.setVisibility(View.GONE);
         imageView.setImageBitmap(bitmap);
     }
 }
