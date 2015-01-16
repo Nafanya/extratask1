@@ -24,6 +24,7 @@ public class ResizableImageActivity extends ActionBarActivity implements
         ImageDownloader.Listener<ImageView> {
 
     public static final String EXTRA_CONTENT_URL = "extra_content_url";
+    public static final String EXTRA_PREFIX_URL = "extra_prefix_url";
     public static final String EXTRA_WATCH_URL = "extra_watch_url";
     public static final String EXTRA_TITLE = "extra_title";
 
@@ -39,13 +40,13 @@ public class ResizableImageActivity extends ActionBarActivity implements
     private static final int ZOOM = 2;
     private int mode = NONE;
 
-    //private ProgressDialog mProgressDialog;
     private ImageView mImageView;
     private ProgressBar mProgressBar;
 
     private ImageDownloader<ImageView> mImageDownloader;
     private String mContentUrl;
     private String mWatchUrl;
+    private String mPrefixUrl;
     private String mTitle;
 
     @Override
@@ -55,15 +56,13 @@ public class ResizableImageActivity extends ActionBarActivity implements
 
         mMatrix = new Matrix();
         mSavedMatrix = new Matrix();
-//        mProgressDialog = new ProgressDialog(this);
-//        mProgressDialog.setTitle("Loading");
-//        mProgressDialog.show();
         mProgressBar = (ProgressBar) findViewById(R.id.progress);
         mProgressBar.setIndeterminate(true);
 
         Intent intent = getIntent();
         mContentUrl = intent.getStringExtra(EXTRA_CONTENT_URL);
         mWatchUrl = intent.getStringExtra(EXTRA_WATCH_URL);
+        mPrefixUrl = intent.getStringExtra(EXTRA_PREFIX_URL);
         mTitle = intent.getStringExtra(EXTRA_TITLE);
         if (mTitle == null) {
             mTitle = "Image";
@@ -100,7 +99,7 @@ public class ResizableImageActivity extends ActionBarActivity implements
         mImageDownloader.setListener(this);
         mImageDownloader.start();
         mImageDownloader.getLooper();
-        mImageDownloader.queueImage(mImageView, mContentUrl + "XL");
+        mImageDownloader.queueImage(mImageView, mPrefixUrl + "XL");
     }
 
 
@@ -119,7 +118,7 @@ public class ResizableImageActivity extends ActionBarActivity implements
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_download_orig) {
-            downloadOriginal(Uri.parse(mContentUrl + "orig"));
+            downloadOriginal(Uri.parse(mContentUrl));
             return true;
         } else if (id == R.id.action_watch) {
             openInBrowser(mWatchUrl);

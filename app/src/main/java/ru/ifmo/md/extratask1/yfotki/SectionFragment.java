@@ -12,6 +12,7 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -129,6 +130,7 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
                 intent.putExtra(ResizableImageActivity.EXTRA_CONTENT_URL, item.getContentUrl());
                 intent.putExtra(ResizableImageActivity.EXTRA_WATCH_URL, item.getWatchUrl());
                 intent.putExtra(ResizableImageActivity.EXTRA_TITLE, item.getTitle());
+                intent.putExtra(ResizableImageActivity.EXTRA_PREFIX_URL, item.getPrefixUrl());
                 startActivity(intent);
             }
         };
@@ -183,12 +185,12 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
             item.setTitle(cursor.getString(cursor.getColumnIndex(PhotosContract.Photo.PHOTO_TITLE)));
             item.setContentUrl(cursor.getString(cursor.getColumnIndex(PhotosContract.Photo.PHOTO_CONTENT_URL)));
             item.setWatchUrl(cursor.getString(cursor.getColumnIndex(PhotosContract.Photo.PHOTO_WATCH_URL)));
-            //item.setSmallImagePath(cursor.getString(cursor.getColumnIndex(PhotosContract.Photo.PHOTO_SMALL_DISK_PATH)));
-            //item.setLargeImagePath(cursor.getString(cursor.getColumnIndex(PhotosContract.Photo.PHOTO_LARGE_DISK_PATH)));
+            item.setPrefixUrl(cursor.getString(cursor.getColumnIndex(PhotosContract.Photo.PHOTO_PREFIX_URL)));
             mItems.add(item);
             cursor.moveToNext();
         }
         mAdapter.setItems(mItems);
+        cursor.close();
     }
 
     @Override
@@ -224,7 +226,8 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         @Override
         public void onBindViewHolder(ViewHolderImage viewHolderImage, int position) {
             PhotoItem item = mItems.get(position);
-            final String url = item.getContentUrl() + "S";
+            final String url = item.getPrefixUrl() + "S";
+            Log.d("TAG", url);
             Bitmap cachedBitmap = getBitmapFromMemCache(url);
             if (cachedBitmap != null) {
                 viewHolderImage.mImageView.setImageBitmap(cachedBitmap);

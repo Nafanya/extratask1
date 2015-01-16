@@ -29,6 +29,7 @@ public class PhotosDatabase extends SQLiteOpenHelper {
                 + PhotosContract.PhotoColumns.PHOTO_TITLE + " TEXT NOT NULL, "
                 + PhotosContract.PhotoColumns.PHOTO_TYPE + " INT NOT NULL,"
                 + PhotosContract.PhotoColumns.PHOTO_CONTENT_URL + " TEXT, "
+                + PhotosContract.PhotoColumns.PHOTO_PREFIX_URL + " TEXT, "
                 + PhotosContract.PhotoColumns.PHOTO_WATCH_URL + " TEXT);"
         );
     }

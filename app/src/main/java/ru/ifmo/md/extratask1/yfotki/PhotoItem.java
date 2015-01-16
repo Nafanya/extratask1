@@ -7,7 +7,17 @@ public class PhotoItem {
     private String mTitle;
     private String mContentUrl;
     private String mWatchUrl;
+    private String mPrefixUrl;
+
     public PhotoItem() {
+    }
+
+    public String getPrefixUrl() {
+        return mPrefixUrl;
+    }
+
+    public void setPrefixUrl(String prefixUrl) {
+        mPrefixUrl = prefixUrl;
     }
 
     public String getTitle() {

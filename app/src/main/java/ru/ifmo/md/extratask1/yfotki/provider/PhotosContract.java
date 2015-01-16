@@ -12,6 +12,7 @@ public final class PhotosContract {
         String PHOTO_TITLE = "photo_title";
         String PHOTO_CONTENT_URL = "photo_content_url";
         String PHOTO_WATCH_URL = "photo_watch_url";
+        String PHOTO_PREFIX_URL = "photo_prefix_url";
         String PHOTO_TYPE = "photo_type";
     }
 
@@ -34,7 +35,8 @@ public final class PhotosContract {
                 BaseColumns._ID,
                 PhotoColumns.PHOTO_TITLE,
                 PhotoColumns.PHOTO_CONTENT_URL,
-                PhotoColumns.PHOTO_WATCH_URL
+                PhotoColumns.PHOTO_WATCH_URL,
+                PhotoColumns.PHOTO_PREFIX_URL,
         };
 
         public static Uri buildPhotoUri(String photoId) {

@@ -104,6 +104,7 @@ public class ImageLoaderService extends IntentService {
             values.put(PhotosContract.PhotoColumns.PHOTO_TYPE, type);
             values.put(PhotosContract.PhotoColumns.PHOTO_WATCH_URL, item.getWatchUrl());
             values.put(PhotosContract.PhotoColumns.PHOTO_CONTENT_URL, item.getContentUrl());
+            values.put(PhotosContract.PhotoColumns.PHOTO_PREFIX_URL, item.getPrefixUrl());
             Uri insertedUri = getContentResolver().insert(PhotosContract.Photo.CONTENT_URI, values);
         }
     }
@@ -184,9 +185,10 @@ public class ImageLoaderService extends IntentService {
                 @Override
                 public void start(Attributes attributes) {
                     String url = attributes.getValue("src");
-                    int underscoreIndex = url.lastIndexOf('_');
-                    url = url.substring(0, underscoreIndex + 1);
                     item.setContentUrl(url);
+                    int underscoreIndex = url.lastIndexOf('_');
+                    String prefixUrl = url.substring(0, underscoreIndex + 1);
+                    item.setPrefixUrl(prefixUrl);
                 }
             });
         }
