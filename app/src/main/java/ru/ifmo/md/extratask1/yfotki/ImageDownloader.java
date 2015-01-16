@@ -69,13 +69,13 @@ public class ImageDownloader<Handle> extends HandlerThread {
 
             Bitmap tempBitmap = loadImageFromStorage(url);
             if (tempBitmap == null) {
-                Log.d("TAG", "Loading image at " + url);
+                //Log.d("TAG", "Loading image at " + url);
                 byte[] bitmapBytes = loadUrlBytes(url);
                 tempBitmap = BitmapFactory.decodeByteArray(
                         bitmapBytes, 0, bitmapBytes.length);
                 saveImageToFile(tempBitmap, url);
             } else {
-                Log.d("TAG", "Image from disk cache");
+                //Log.d("TAG", "Image from disk cache");
             }
 
             final Bitmap bitmap = tempBitmap;
@@ -172,7 +172,9 @@ public class ImageDownloader<Handle> extends HandlerThread {
         }
         mRequestMap.put(handle, url);
 
-        mHandler.obtainMessage(MESSAGE_DOWNLOAD, handle).sendToTarget();
+        if (mHandler != null) {
+            mHandler.obtainMessage(MESSAGE_DOWNLOAD, handle).sendToTarget();
+        }
     }
 
     public void clearQueue() {

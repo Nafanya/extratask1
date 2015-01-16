@@ -8,5 +8,8 @@
     <string name="recent">Recent</string>
     <string name="top">Top</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="title_activity_resizable_image">ResizableImageActivity</string>
+    <string name="action_download_orig">Download original</string>
+    <string name="action_watch">Watch in browser</string>
 
 </resources>

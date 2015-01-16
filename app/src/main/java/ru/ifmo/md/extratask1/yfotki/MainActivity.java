@@ -24,6 +24,7 @@ public class MainActivity extends FragmentActivity {
         mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager(), getApplicationContext());
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setAdapter(mSectionsPagerAdapter);
+
     }
 
 
@@ -56,16 +57,19 @@ public class MainActivity extends FragmentActivity {
     public static class SectionsPagerAdapter extends FragmentPagerAdapter {
 
         private Context mContext;
+        private FragmentManager mFragmentManager;
 
         public SectionsPagerAdapter(FragmentManager fm, Context context) {
             super(fm);
             mContext = context;
+            mFragmentManager = fm;
         }
 
         @Override
-        public Fragment getItem(int i) {
-            return SectionFragment.newInstance(i);
+        public Fragment getItem(int position) {
+            return SectionFragment.newInstance(position);
         }
+
 
         @Override
         public int getCount() {

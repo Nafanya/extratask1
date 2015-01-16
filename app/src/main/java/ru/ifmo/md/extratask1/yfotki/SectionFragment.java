@@ -1,5 +1,6 @@
 package ru.ifmo.md.extratask1.yfotki;
 
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -37,6 +38,8 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
     private int mSection;
     private ArrayList<PhotoItem> mItems;
 
+    private View.OnClickListener mOnClickListener;
+
     public static SectionFragment newInstance(int section) {
         SectionFragment fragment = new SectionFragment();
         Bundle args = new Bundle();
@@ -52,8 +55,6 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        setRetainInstance(true);
 
         Bundle args = getArguments();
         mSection = args.getInt(ARG_SECTION_NUMBER);
@@ -117,6 +118,19 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
                 return bitmap.getByteCount() / 1024;
             }
 
+        };
+
+        mOnClickListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int itemPosition = mRecyclerView.getChildPosition(view);
+                PhotoItem item = mAdapter.mItems.get(itemPosition);
+                Intent intent = new Intent(getActivity(), ResizableImageActivity.class);
+                intent.putExtra(ResizableImageActivity.EXTRA_CONTENT_URL, item.getContentUrl());
+                intent.putExtra(ResizableImageActivity.EXTRA_WATCH_URL, item.getWatchUrl());
+                intent.putExtra(ResizableImageActivity.EXTRA_TITLE, item.getTitle());
+                startActivity(intent);
+            }
         };
 
         getLoaderManager().initLoader(LOADER_IMAGES, null, this);
@@ -202,6 +216,7 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         @Override
         public ViewHolderImage onCreateViewHolder(ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.section_item, parent, false);
+            v.setOnClickListener(mOnClickListener);
             ViewHolderImage holder = new ViewHolderImage(v);
             return holder;
         }
