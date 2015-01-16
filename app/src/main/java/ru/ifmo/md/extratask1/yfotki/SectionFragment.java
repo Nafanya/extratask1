@@ -1,6 +1,10 @@
 package ru.ifmo.md.extratask1.yfotki;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -10,24 +14,31 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
 import ru.ifmo.md.extratask1.yfotki.provider.PhotosContract;
 
 
-public class SectionFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>,ImageDownloader.Listener<ImageView> {
+public class SectionFragment extends Fragment implements
+        LoaderManager.LoaderCallbacks<Cursor>,
+        ImageDownloader.Listener<ImageView>,
+        SwipeRefreshLayout.OnRefreshListener {
     public static final String ARG_SECTION_NUMBER = "number";
 
     private static final int LOADER_IMAGES = 1;
+
+    private static final String FRAGMENT_STATE_REFRESHING = "isRefreshing";
 
     private RecyclerView mRecyclerView;
     private SectionAdapter mAdapter;
@@ -40,6 +51,11 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
     private ArrayList<PhotoItem> mItems;
 
     private View.OnClickListener mOnClickListener;
+
+    private SwipeRefreshLayout mRefreshLayout;
+    private boolean mIsRefreshing;
+
+    private DownloadStateReceiver mDownloadStateReceiver;
 
     public static SectionFragment newInstance(int section) {
         SectionFragment fragment = new SectionFragment();
@@ -60,8 +76,34 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         Bundle args = getArguments();
         mSection = args.getInt(ARG_SECTION_NUMBER);
 
-        // TODO: don't load each onCreate
-        ImageLoaderService.startActionLoad(getActivity(), mSection);
+        checkFirstLaunch();
+    }
+
+    private void checkFirstLaunch() {
+        final String key = Integer.toString(mSection);
+        int isFirstTime = readFromPreferences(key);
+        if (isFirstTime == -1) {
+            saveToPreferences(key, 1);
+            ImageLoaderService.startActionLoad(getActivity(), mSection);
+        }
+    }
+
+    private void saveToPreferences(String key, int value) {
+        SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt(key, value);
+        editor.apply();
+    }
+
+    private int readFromPreferences(String key) {
+        SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+        return sharedPref.getInt(key, -1);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(FRAGMENT_STATE_REFRESHING, mIsRefreshing);
     }
 
     @Override
@@ -71,6 +113,11 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         mImageDownloader.quit();
         mImageDownloader.setListener(null);
         mImageDownloader = null;
+
+        if (mDownloadStateReceiver != null) {
+            LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(mDownloadStateReceiver);
+            mDownloadStateReceiver = null;
+        }
     }
 
     @Override
@@ -135,9 +182,55 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
             }
         };
 
+        mRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.swipe_container);
+        mRefreshLayout.setOnRefreshListener(this);
+        mRefreshLayout.setColorSchemeResources(
+                android.R.color.holo_orange_dark,
+                android.R.color.holo_green_dark,
+                android.R.color.holo_red_dark,
+                android.R.color.holo_blue_dark
+        );
+
+        mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+            }
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                final int topRowVerticalPosition;
+                if (recyclerView == null || recyclerView.getChildCount() == 0) {
+                    topRowVerticalPosition = 0;
+                } else {
+                    topRowVerticalPosition = recyclerView.getChildAt(0).getTop();
+                }
+                mRefreshLayout.setEnabled(topRowVerticalPosition >= 0);
+            }
+        });
+
+        IntentFilter statusIntentFilter = new IntentFilter(Constants.BROADCAST_ACTION);
+        statusIntentFilter.addCategory(Intent.CATEGORY_DEFAULT);
+
+        mDownloadStateReceiver = new DownloadStateReceiver();
+        LocalBroadcastManager.getInstance(getActivity())
+                .registerReceiver(mDownloadStateReceiver, statusIntentFilter);
+
         getLoaderManager().initLoader(LOADER_IMAGES, null, this);
 
         super.onViewCreated(view, savedInstanceState);
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+        if (savedInstanceState != null) {
+            mIsRefreshing = savedInstanceState.getBoolean(FRAGMENT_STATE_REFRESHING);
+            mRefreshLayout.setRefreshing(mIsRefreshing);
+        }
     }
 
     public void addBitmapToMemoryCache(String key, Bitmap bitmap) {
@@ -190,7 +283,6 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
             cursor.moveToNext();
         }
         mAdapter.setItems(mItems);
-        cursor.close();
     }
 
     @Override
@@ -199,6 +291,11 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
             imageView.setImageBitmap(bitmap);
             addBitmapToMemoryCache(url, bitmap);
         }
+    }
+
+    @Override
+    public void onRefresh() {
+        ImageLoaderService.startActionLoad(getActivity().getApplicationContext(), mSection);
     }
 
     private class SectionAdapter extends RecyclerView.Adapter<ViewHolderImage> {
@@ -227,7 +324,6 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         public void onBindViewHolder(ViewHolderImage viewHolderImage, int position) {
             PhotoItem item = mItems.get(position);
             final String url = item.getPrefixUrl() + "S";
-            Log.d("TAG", url);
             Bitmap cachedBitmap = getBitmapFromMemCache(url);
             if (cachedBitmap != null) {
                 viewHolderImage.mImageView.setImageBitmap(cachedBitmap);
@@ -249,6 +345,44 @@ public class SectionFragment extends Fragment implements LoaderManager.LoaderCal
         public ViewHolderImage(View view) {
             super(view);
             mImageView = (ImageView) view;
+        }
+    }
+
+    private class DownloadStateReceiver extends BroadcastReceiver {
+
+        public DownloadStateReceiver() {
+
+        }
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final int status = intent.getIntExtra(Constants.EXTRA_STATUS, Constants.STATE_ACTION_COMPLETE);
+            final int section = intent.getIntExtra(Constants.EXTRA_SECTION, -1);
+            if (section != mSection) {
+                return;
+            }
+            switch (status)  {
+                case Constants.STATE_ACTION_COMPLETE:
+                    mIsRefreshing = false;
+                    mRefreshLayout.setRefreshing(false);
+                    break;
+                case Constants.STATE_ACTION_STARTED:
+                    mIsRefreshing = true;
+                    mRefreshLayout.setRefreshing(true);
+                    break;
+                case Constants.STATE_ACTION_ERROR:
+                    Toast.makeText(getActivity(), "Error during update", Toast.LENGTH_SHORT).show();
+                    mIsRefreshing = false;
+                    mRefreshLayout.setRefreshing(false);
+                    break;
+                case Constants.STATE_ACTION_NO_INTERNET:
+                    Toast.makeText(getActivity(), "No internet connection", Toast.LENGTH_SHORT).show();
+                    mIsRefreshing = false;
+                    mRefreshLayout.setRefreshing(false);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 

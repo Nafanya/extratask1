@@ -84,8 +84,6 @@ public class ResizableImageActivity extends ActionBarActivity implements
         mImageDownloader.quit();
         mImageDownloader.setListener(null);
         mImageDownloader = null;
-
-        //mProgressDialog.dismiss();
     }
 
     @Override
@@ -205,9 +203,6 @@ public class ResizableImageActivity extends ActionBarActivity implements
 
     @Override
     public void onImageDownloaded(ImageView imageView, String url, Bitmap bitmap) {
-//        if (mProgressDialog.isShowing()) {
-//            mProgressDialog.dismiss();
-//        }
         mProgressBar.setVisibility(View.GONE);
         imageView.setImageBitmap(bitmap);
     }

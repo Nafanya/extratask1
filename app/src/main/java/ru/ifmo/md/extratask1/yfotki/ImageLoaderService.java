@@ -5,6 +5,8 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.sax.Element;
 import android.sax.ElementListener;
@@ -37,6 +39,8 @@ public class ImageLoaderService extends IntentService {
     public static final int SECTION_RECENT = 1;
     public static final int SECTION_POD = 2;
 
+    private BroadcastNotifier mNotifier = new BroadcastNotifier(this);
+
     public static void startActionLoad(Context context, int type) {
         Intent intent = new Intent(context, ImageLoaderService.class);
         intent.setAction(ACTION_LOAD);
@@ -54,6 +58,7 @@ public class ImageLoaderService extends IntentService {
             final String action = intent.getAction();
             if (ACTION_LOAD.equals(action)) {
                 final int type = intent.getIntExtra(EXTRA_PARAM_SECTION_TYPE, 0);
+                mNotifier.broadcastIntentWithState(Constants.STATE_ACTION_STARTED, type);
                 handleActionLoad(type);
             }
         }
@@ -62,12 +67,16 @@ public class ImageLoaderService extends IntentService {
     private void handleActionLoad(int type) {
         try {
             loadPhotos(type);
-            // TODO: proper handling
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (SAXException e) {
-            e.printStackTrace();
+        } catch (IOException | SAXException e) {
+            mNotifier.broadcastIntentWithState(Constants.STATE_ACTION_ERROR, type);
         }
+    }
+
+    private boolean isOnline() {
+        ConnectivityManager cm =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        return netInfo != null && netInfo.isConnectedOrConnecting();
     }
 
     private void loadPhotos(int type) throws IOException, SAXException {
@@ -76,7 +85,11 @@ public class ImageLoaderService extends IntentService {
         try {
             url = new URL(buildSectionUrl(type));
         } catch (MalformedURLException e) {
-            e.printStackTrace();
+            throw e;
+        }
+
+        if (!isOnline()) {
+            mNotifier.broadcastIntentWithState(Constants.STATE_ACTION_NO_INTERNET, type);
             return;
         }
 
@@ -107,6 +120,7 @@ public class ImageLoaderService extends IntentService {
             values.put(PhotosContract.PhotoColumns.PHOTO_PREFIX_URL, item.getPrefixUrl());
             Uri insertedUri = getContentResolver().insert(PhotosContract.Photo.CONTENT_URI, values);
         }
+        mNotifier.broadcastIntentWithState(Constants.STATE_ACTION_COMPLETE, type);
     }
 
     private String buildSectionUrl(int type) {
